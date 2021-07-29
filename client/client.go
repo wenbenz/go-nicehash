@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -58,6 +59,10 @@ func NewClientReadFrom(path string) (*Client, error) {
 
 //Do populates required request headers and signs the request using the client secret key.
 //Decodes response into destination if destination is not nil.
+//JSON responses get unmarshalled into destination;
+//CSV responses returns the reader.
+//TODO: refactor to a generic Do method that returns an http.Response and use a
+//	different method to do the unmarshalling.
 func (c *Client) Do(request *http.Request, destination interface{}) error {
 	c.populateHeaders(*request)
 	if err := c.populateAuth(*request); err != nil {
@@ -74,10 +79,8 @@ func (c *Client) Do(request *http.Request, destination interface{}) error {
 	if contentType == "application/json" {
 		return json.NewDecoder(response.Body).Decode(destination)
 	} else if contentType == "text/csv" {
-		if text, err := ioutil.ReadAll(response.Body); err == nil {
-			*destination.(*[]byte) = text
-		}
-		return err
+		*destination.(*io.ReadCloser) = response.Body
+		return nil
 	} else {
 		return fmt.Errorf("unrecognized content type '%s'", contentType)
 	}
