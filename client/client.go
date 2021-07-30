@@ -6,9 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -61,29 +59,12 @@ func NewClientReadFrom(path string) (*Client, error) {
 //Decodes response into destination if destination is not nil.
 //JSON responses get unmarshalled into destination;
 //CSV responses returns the reader.
-//TODO: refactor to a generic Do method that returns an http.Response and use a
-//	different method to do the unmarshalling.
-func (c *Client) Do(request *http.Request, destination interface{}) error {
+func (c *Client) Do(request *http.Request) (*http.Response, error) {
 	c.populateHeaders(*request)
 	if err := c.populateAuth(*request); err != nil {
-		return err
+		return nil, err
 	}
-	response, err := c.httpClient.Do(request)
-	if err != nil {
-		return err
-	}
-	if destination == nil {
-		return nil
-	}
-	contentType := response.Header.Get("Content-Type")
-	if contentType == "application/json" {
-		return json.NewDecoder(response.Body).Decode(destination)
-	} else if contentType == "text/csv" {
-		*destination.(*io.ReadCloser) = response.Body
-		return nil
-	} else {
-		return fmt.Errorf("unrecognized content type '%s'", contentType)
-	}
+	return c.httpClient.Do(request)
 }
 
 func getUrl(endpoint string, args ...interface{}) string {

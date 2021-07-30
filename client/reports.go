@@ -1,8 +1,8 @@
 package client
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -51,7 +51,7 @@ func (c *Client) CreateReport(transactionType, currency, fiat, aggregation strin
 	if err != nil {
 		return err
 	}
-	err = c.Do(request, nil)
+	_, err = c.Do(request)
 	return err
 }
 
@@ -61,11 +61,11 @@ func (c *Client) GetReportsList() ([]ReportMetadata, error) {
 	var reports []ReportMetadata
 	var err error
 	if request, err := http.NewRequest("GET", getUrl(REPORTS_LIST_ENDPOINT), nil); err == nil {
-		if err = c.Do(request, &reports); err == nil {
-			return reports, nil
+		if response, err := c.Do(request); err == nil {
+			json.NewDecoder(response.Body).Decode(&reports)
 		}
 	}
-	return nil, err
+	return reports, err
 }
 
 //GetReport returns the CSV bytes of a report
@@ -74,9 +74,8 @@ func (c *Client) GetReport(id string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var b io.ReadCloser
-	if err = c.Do(request, &b); err == nil {
-		return ioutil.ReadAll(b)
+	if response, err := c.Do(request); err == nil {
+		return ioutil.ReadAll(response.Body)
 	}
 	return nil, err
 }
@@ -87,7 +86,7 @@ func (c *Client) DeleteReport(id string) error {
 	if err != nil {
 		return err
 	}
-	if err = c.Do(request, nil); err == nil {
+	if _, err = c.Do(request); err == nil {
 		return nil
 	}
 	return err

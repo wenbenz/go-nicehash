@@ -1,6 +1,7 @@
 package client
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 )
@@ -25,15 +26,19 @@ type AccountExtendedDetail struct {
 	UnpaidMining    string `json:"unpaidMining"`
 }
 
-func (c *Client) GetAccount(currency string, extended bool) (Account, error) {
-	var account Account
+func (c *Client) GetAccount(currency string, extended bool) (*Account, error) {
 	request, err := http.NewRequest("GET", getUrl(ACCOUNT_ENDPOINT, "BTC"), nil)
 	if err != nil {
-		return Account{}, err
+		return nil, err
 	}
 	addQueryParams(request, map[string]string{
 		"extendedResponse": strconv.FormatBool(extended),
 	})
-	err = c.Do(request, &account)
-	return account, err
+	response, err := c.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	var account Account
+	json.NewDecoder(response.Body).Decode(&account)
+	return &account, err
 }
