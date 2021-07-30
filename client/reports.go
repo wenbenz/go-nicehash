@@ -3,7 +3,7 @@ package client
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -68,14 +68,14 @@ func (c *Client) GetReportsList() ([]ReportMetadata, error) {
 	return reports, err
 }
 
-//GetReport returns the CSV bytes of a report
-func (c *Client) GetReport(id string) ([]byte, error) {
+//GetReport returns a CSV ReadCloser
+func (c *Client) GetReport(id string) (io.ReadCloser, error) {
 	request, err := http.NewRequest("GET", getUrl(DOWNLOAD_REPORT_ENDPOINT, id), nil)
 	if err != nil {
 		return nil, err
 	}
 	if response, err := c.Do(request); err == nil {
-		return ioutil.ReadAll(response.Body)
+		return response.Body, nil
 	}
 	return nil, err
 }
