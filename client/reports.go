@@ -51,7 +51,10 @@ func (c *Client) CreateReport(transactionType, currency, fiat, aggregation strin
 	if err != nil {
 		return err
 	}
-	_, err = c.Do(request)
+	var response *http.Response
+	if response, err = c.Do(request); err == nil {
+		err = NewUnexpectedResponseError(response.StatusCode, 200)
+	}
 	return err
 }
 
@@ -60,9 +63,13 @@ func (c *Client) CreateReport(transactionType, currency, fiat, aggregation strin
 func (c *Client) GetReportsList() ([]ReportMetadata, error) {
 	var reports []ReportMetadata
 	var err error
-	if request, err := http.NewRequest("GET", getUrl(REPORTS_LIST_ENDPOINT), nil); err == nil {
-		if response, err := c.Do(request); err == nil {
-			json.NewDecoder(response.Body).Decode(&reports)
+	var request *http.Request
+	var response *http.Response
+	if request, err = http.NewRequest("GET", getUrl(REPORTS_LIST_ENDPOINT), nil); err == nil {
+		if response, err = c.Do(request); err == nil {
+			if err = NewUnexpectedResponseError(response.StatusCode, 200); err == nil {
+				err = json.NewDecoder(response.Body).Decode(&reports)
+			}
 		}
 	}
 	return reports, err
@@ -75,7 +82,7 @@ func (c *Client) GetReport(id string) (io.ReadCloser, error) {
 		return nil, err
 	}
 	if response, err := c.Do(request); err == nil {
-		return response.Body, nil
+		return response.Body, NewUnexpectedResponseError(response.StatusCode, 200)
 	}
 	return nil, err
 }
@@ -86,8 +93,9 @@ func (c *Client) DeleteReport(id string) error {
 	if err != nil {
 		return err
 	}
-	if _, err = c.Do(request); err == nil {
-		return nil
+	var response *http.Response
+	if response, err = c.Do(request); err == nil {
+		err = NewUnexpectedResponseError(response.StatusCode, 200)
 	}
 	return err
 }

@@ -39,6 +39,9 @@ func (c *Client) GetAccount(currency string, extended bool) (*Account, error) {
 		return nil, err
 	}
 	var account Account
-	json.NewDecoder(response.Body).Decode(&account)
+	if err = NewUnexpectedResponseError(response.StatusCode, 200); err != nil {
+		return nil, err
+	}
+	err = json.NewDecoder(response.Body).Decode(&account)
 	return &account, err
 }
